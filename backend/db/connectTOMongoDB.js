@@ -9,6 +9,4 @@ const connecToMOngoDB =async()=>{
     }
 }
 
-export default connecToMOngoDB
-
-
+export default connecToMOngoDB;
