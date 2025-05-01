@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 
 const useSendGroupMessage = () => {
   const [loading, setLoading] = useState(false);
-  const { selectedGroup, addMessage } = useGroupConversation();
+  const { selectedGroup } = useGroupConversation();
   const { socket } = useSocketContext();
 
   const sendGroupMessage = async (messageText) => {
@@ -26,8 +26,6 @@ const useSendGroupMessage = () => {
         groupId: selectedGroup._id,
       });
 
-      // Append locally using addMessage helper
-      addMessage(data);
     } catch (error) {
       toast.error(error.message);
     } finally {
