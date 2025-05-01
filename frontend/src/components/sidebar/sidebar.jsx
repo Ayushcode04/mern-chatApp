@@ -1,4 +1,3 @@
-// frontend/src/components/sidebar/sidebar.jsx
 import { useState } from "react";
 import SearchInput from "./SearchInput";
 import Conversations from "./Conversations";
@@ -6,16 +5,36 @@ import LogoutButton from "./LogoutButton";
 import GroupsList from "../groups/GroupsList";
 import { FaPlus } from "react-icons/fa";
 import CreateGroupModal from "../groups/CreateGroupModal";
+import useTheme from '../../zustand/useTheme';
 
 const Sidebar = () => {
   const [activeTab, setActiveTab] = useState("chats");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  const themes = ["light", "dark", "cupcake", "emerald", "synthwave"];
+  const { theme, setTheme } = useTheme();
+
   return (
-    <div className="border-r border-slate-500 p-4 flex flex-col">
+    <div className="h-full flex flex-col border-r border-slate-500 p-4">
       <SearchInput />
       <div className="divider px-3"></div>
-      
+
+      {/* Theme Switcher: moved here */}
+      <div className="mb-4">
+        <label className="label-text text-sm">Theme</label>
+        <select
+          className="select select-bordered select-sm w-full"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+        >
+          {themes.map((t) => (
+            <option key={t} value={t}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Tab Navigation */}
       <div className="flex mb-4">
         <button
@@ -35,8 +54,7 @@ const Sidebar = () => {
           Groups
         </button>
       </div>
-      
-      {/* Create Group Button (only shown in groups tab) */}
+
       {activeTab === "groups" && (
         <button
           onClick={() => setIsCreateModalOpen(true)}
@@ -45,13 +63,11 @@ const Sidebar = () => {
           <FaPlus /> Create Group
         </button>
       )}
-      
-      {/* Content based on active tab */}
+
       {activeTab === "chats" ? <Conversations /> : <GroupsList />}
-      
+
       <LogoutButton />
-      
-      {/* Create Group Modal */}
+
       <CreateGroupModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

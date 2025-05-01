@@ -20,10 +20,14 @@ const Home = () => {
   }, [selectedConversation]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="flex h-[500px] md:h-[550px] rounded-lg overflow-hidden bg-gray-400 bg-clip-padding backdrop-filter backdrop-blur-lg bg-opacity-0">
-        <Sidebar />
-        {selectedGroup ? <GroupMessageContainer /> : <MessageContainer />}
+    <div className="flex items-center justify-center min-h-screen bg-base-100">
+      <div className="flex h-[500px] md:h-[550px] rounded-lg overflow-hidden shadow-lg border border-gray-600 w-full max-w-6xl">
+        <div className="w-1/3 border-r border-gray-600 bg-base-200">
+          <Sidebar />
+        </div>
+        <div className="w-2/3">
+          {selectedGroup ? <GroupMessageContainer /> : <MessageContainer />}
+        </div>
       </div>
     </div>
   );
