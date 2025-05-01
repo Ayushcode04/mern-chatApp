@@ -1,33 +1,28 @@
 import { useEffect } from 'react';
 import { useSocketContext } from '../context/SocketContext';
 import useGroupConversation from '../zustand/useGroupConversation';
-import notificationSound from '../assets/sounds/notification.mp3';
 
-const useListenGroupMessages = () => {
+const useListenGroupMessages = (groupId) => {
   const { socket } = useSocketContext();
-  const { messages, setMessages, selectedGroup } = useGroupConversation();
+  const addMessage = useGroupConversation((state) => state.addMessage);
 
   useEffect(() => {
-    if (selectedGroup) {
-      socket?.emit('joinGroup', selectedGroup._id);
-    }
+    if (!groupId) return;
 
-    socket?.on('newGroupMessage', (data) => {
-      if (data.groupId === selectedGroup?._id) {
-        const newMessage = { ...data.message, shouldShake: true };
-        const sound = new Audio(notificationSound);
-        sound.play();
-        setMessages([...messages, newMessage]);
-      }
-    });
+    // join this group's room
+    socket.emit('joinGroup', { groupId });
+
+    // handle incoming group messages
+    const handler = ({ message, groupId: incomingGroupId }) => {
+      if (incomingGroupId === groupId) addMessage(message);
+    };
+    socket.on('newGroupMessage', handler);
 
     return () => {
-      if (selectedGroup) {
-        socket?.emit('leaveGroup', selectedGroup._id);
-      }
-      socket?.off('newGroupMessage');
+      socket.off('newGroupMessage', handler);
+      socket.emit('leaveGroup', { groupId });
     };
-  }, [socket, setMessages, messages, selectedGroup]);
+  }, [groupId, socket, addMessage]);
 };
 
 export default useListenGroupMessages;

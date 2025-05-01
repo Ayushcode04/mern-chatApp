@@ -7,20 +7,30 @@ const useGetGroupMessages = () => {
   const { messages, setMessages, selectedGroup } = useGroupConversation();
 
   useEffect(() => {
+    if (!selectedGroup?._id) {
+      setMessages([]);
+      return;
+    }
+
     const getGroupMessages = async () => {
       setLoading(true);
       try {
         const res = await fetch(`/api/group-messages/${selectedGroup._id}`);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
-        setMessages(data);
+        // Normalize to array
+        const msgsArray = Array.isArray(data) ? data : data.messages || [];
+        setMessages(msgsArray);
       } catch (error) {
         toast.error(error.message);
       } finally {
         setLoading(false);
       }
     };
-    if (selectedGroup?._id) getGroupMessages();
+
+    // clear old messages and fetch new
+    setMessages([]);
+    getGroupMessages();
   }, [selectedGroup?._id, setMessages]);
 
   return { messages, loading };

@@ -27,33 +27,20 @@ export const sendGroupMessage = async (req, res) => {
             message,
         });
 
-        if (newMessage) {
-            // Add message to group
-            group.messages.push(newMessage._id);
-            
-            // Save both message and updated group
-            await Promise.all([group.save(), newMessage.save()]);
+        group.messages.push(newMessage._id);
+        await Promise.all([group.save(), newMessage.save()]);
 
-            // Populate sender info for frontend display
-            const populatedMessage = await GroupMessage.findById(newMessage._id)
-                .populate("senderId", "username fullName profilePic");
+        // Populate sender info for frontend display
+        const populatedMessage = await GroupMessage.findById(newMessage._id)
+            .populate("senderId", "username fullName profilePic");
 
-            // Emit to all group members via socket.io
-            for (const memberId of group.members) {
-                // Skip if socket ID not found (user offline)
-                const socketId = io.userSocketMap?.[memberId.toString()];
-                if (socketId) {
-                    io.to(socketId).emit("newGroupMessage", {
-                        message: populatedMessage,
-                        groupId: group._id
-                    });
-                }
-            }
+        // Emit to the group room
+        io.to(`group:${groupId}`).emit("newGroupMessage", {
+            message: populatedMessage,
+            groupId: groupId
+        });
 
-            res.status(201).json(populatedMessage);
-        } else {
-            res.status(400).json({ error: "Could not create message" });
-        }
+        res.status(201).json(populatedMessage);
     } catch (error) {
         console.log("Error in sendGroupMessage controller:", error.message);
         res.status(500).json({ error: "Internal server error" });

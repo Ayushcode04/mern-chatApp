@@ -1,55 +1,58 @@
-import { Server } from "socket.io";
-import http from "http";
-import express from "express";
+import { Server } from 'socket.io';
+import http from 'http';
+import express from 'express';
 
-const app=express();
+const app = express();
+const server = http.createServer(app);
 
-const server=http.createServer(app);
-const io=new Server(server,{
-    cors:{
-        origin:["http://localhost:3000"],
-        methods : ["GET","POST"]
-    }
+const io = new Server(server, {
+  cors: {
+    origin: process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3000'
+      : 'https://chat-app-production-7st5.onrender.com',
+    methods: ['GET','POST'],
+    credentials: true,
+  }
 });
 
-export const getReciverSocketId = (receiverId)=>{
-    return userSocketMap[receiverId]
-}
+// keep track of userId → socket.id
+const userSocketMap = {};
 
-const userSocketMap= {} // {userId:socketId}
+/** allow controllers to look up a user’s socket */
+export const getReciverSocketId = (userId) => {
+  return userSocketMap[userId];
+};
 
-export const userSockketMap = userSocketMap; 
+io.on('connection', (socket) => {
+  console.log('⚡️ Socket connected:', socket.id);
+  const userId = socket.handshake.query.userId;
+  if (userId) userSocketMap[userId] = socket.id;
 
-io.on("connection",(socket)=>{
-    console.log("a user connected",socket.id)
+  socket.on('joinGroup', ({ groupId }) => {
+    socket.join(`group:${groupId}`);
+    console.log(`Socket ${socket.id} joined room group:${groupId}`);
+  });
 
-    const userId = socket.handshake.query.userId;
-    if (userId != "undefined" ) userSocketMap[userId]=socket.id;
+  socket.on('leaveGroup', ({ groupId }) => {
+    socket.leave(`group:${groupId}`);
+    console.log(`Socket ${socket.id} left room group:${groupId}`);
+  });
 
-    // Make userSocketMap available on io for other modules
-    io.userSocketMap = userSocketMap;
+  io.emit('get_online_users', Object.keys(userSocketMap));
 
-    // io.emit() is used to send the event to all the connected clients
-    io.emit("get_online_users",Object.keys(userSocketMap))
+  socket.on('newMessage', ({ message, receiverId }) => {
+    const receiverSocketId = userSocketMap[receiverId];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('newMessage', message);
+    }
+  });
 
-    // Handle joining group chat rooms
-    socket.on("joinGroup", (groupId) => {
-        socket.join(`group:${groupId}`);
-        console.log(`User ${userId} joined group ${groupId}`);
-    });
+  socket.on('disconnect', () => {
+    console.log('❌ Socket disconnected:', socket.id);
+    delete userSocketMap[userId];
+    io.emit('get_online_users', Object.keys(userSocketMap));
+  });
+});
 
-    // Handle leaving group chat rooms
-    socket.on("leaveGroup", (groupId) => {
-        socket.leave(`group:${groupId}`);
-        console.log(`User ${userId} left group ${groupId}`);
-    });
-
-    // socket.on is used to listen to the event.can be used to listen to the event from the client side 
-    socket.on("disconnect",()=>{
-        console.log("user disconnected",socket.id)
-        delete userSocketMap[userId]
-        io.emit("get_online_users",Object.keys(userSocketMap))
-    })
-})
-
-export {app,io,server}
+// now export io so controllers can emit to rooms too
+export { app, server, io };
